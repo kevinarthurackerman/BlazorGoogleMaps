@@ -26,14 +26,17 @@ namespace GoogleMapsComponents.Maps
             ElementReference mapDiv,
             MapOptions? opts = null)
         {
-            var jsObjectRef = await JsObjectRef.CreateAsync(jsRuntime, "google.maps.Map", mapDiv, opts);
-            var dataObjectRef = await jsObjectRef.GetObjectReference("data");
-            var data = new MapData(dataObjectRef);
-            var map = new Map(jsObjectRef, data);
+            if (!MapObjectPool.TryCheckOut(out var map))
+            {
+                var jsObjectRef = await JsObjectRef.CreateAsync(jsRuntime, "google.maps.Map", mapDiv, opts);
+                var dataObjectRef = await jsObjectRef.GetObjectReference("data");
+                var data = new MapData(dataObjectRef);
+                map = new Map(jsObjectRef, data);
 
-            JsObjectRefInstances.Add(map);
+                JsObjectRefInstances.Add(map);
+            }
 
-            return map;
+            return map!;
         }
 
         private Map(JsObjectRef jsObjectRef, MapData data)
@@ -62,9 +65,8 @@ namespace GoogleMapsComponents.Maps
 
         public void Dispose()
         {
-            JsObjectRefInstances.Remove(_jsObjectRef.Guid.ToString());
-            _jsObjectRef.JSRuntime.InvokeAsync<object>("googleMapsObjectManager.disposeMapElements", Guid.ToString());
-            _jsObjectRef.Dispose();
+            DisposableMapReferencingComponents.DisposeAndRemoveComponentsReferencingMap(this);
+            MapObjectPool.CheckIn(this);
         }
 
         /// <summary>

@@ -10,6 +10,9 @@ namespace GoogleMapsComponents.Maps
         {
             var jsObjectRef = await JsObjectRef.CreateAsync(jsRuntime, "google.maps.Marker", opts);
             var obj = new Marker(jsObjectRef);
+
+            DisposableMapReferencingComponents.AddOrUpdate(opts?.Map, obj);
+
             return obj;
         }
 
@@ -183,6 +186,8 @@ namespace GoogleMapsComponents.Maps
 
         public Task SetOptions(MarkerOptions options)
         {
+            DisposableMapReferencingComponents.AddOrUpdate(options.Map, this);
+
             return _jsObjectRef.InvokeAsync(
                 "setOptions",
                 options);
